@@ -37,9 +37,10 @@ ShowToc = true
     name = "About"
     url = "/about"
 
-  [[params.socialIcons]]
-  name = "twitter"
-  url = "https://twitter.com/_ninadn"
+  # Social icons removed as requested
+  # [[params.socialIcons]]
+  # name = "twitter"
+  # url = "https://twitter.com/_ninadn"
 
 [params.assets]
 favicon = ""
