@@ -1,5 +1,7 @@
 ---
+
 title: "What is Intelligence?"
+slug: "what-is-intelligence"
 date: 2025-06-01
 tags: ["AI", "Intelligence"]
 author: "Ninad Naik"

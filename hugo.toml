@@ -67,3 +67,8 @@ noClasses = false
 lineNos = true
 codeFences = true
 guessSyntax = true
+
+# Google Analytics configuration
+# Replace YOUR-MEASUREMENT-ID with your actual Google Analytics Measurement ID (G-XXXXXXXXXX)
+[params.analytics]
+googleAnalytics = "" # Add your Google Analytics Measurement ID here
