@@ -1,0 +1,35 @@
+name: Weekly research triage
+
+on:
+  schedule:
+    - cron: '0 13 * * 5'      # every Friday 13:00 UTC
+  workflow_dispatch:          # lets you run it on-demand from the Actions tab
+
+jobs:
+  triage-inbox:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+
+      - name: Install dependencies
+        run: pip install PyGithub openai
+
+      - name: Run triage script
+        env:
+          GH_PAT:          ${{ secrets.GH_PAT }}
+          OPENAI_API_KEY:  ${{ secrets.OPENAI_API_KEY }}
+        run: python scripts/triage_inbox.py
+
+      - name: Commit summaries
+        run: |
+          git config user.name  "triage-bot"
+          git config user.email "bot@example.com"
+          git add research/processed || true
+          git commit -m "chore: auto-triage research inbox" || echo "Nothing to commit"
+          git push
