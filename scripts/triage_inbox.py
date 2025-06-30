@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
 """
-triage_inbox.py  –  Weekly research helper
+triage_inbox.py  –  Weekly research helper (v2)
 
-• Finds Issues labelled `inbox`
-• Fetches either:
-    – the full readable text of a web article, OR
-    – the auto-generated transcript of a YouTube video,
-  falling back to your own note if fetching fails
-• Sends that text to GPT-4o-mini:
-    → returns 2 concise bullets + 1 essay tag
-• Writes a markdown evidence file to research/processed/
-• Comments “Processed ✅” on the Issue, relabels to `processed`
+• Fetches article text or YouTube transcript (fallback: your note)
+• Summarises into 3 paragraphs (~150 words) focused on AI-Book thesis
+• Adds Tag + Stance metadata
+• Skips irrelevant sources
+• Writes markdown note → research/processed/
+• Comments "Processed ✅" on Issue, relabels to processed
 """
 
 import os, re, datetime, textwrap, requests, html2text
@@ -20,33 +17,27 @@ from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
 from github import Github
 from openai import OpenAI
 
-# --------------------------------------------------------------------
-# 1) Environment vars injected by the GitHub Action
-# --------------------------------------------------------------------
-REPO_NAME      = os.environ["GITHUB_REPOSITORY"]          # e.g. "ninadnaik/ninadnaik.github.io"
-GH_PAT         = os.environ["GH_PAT"]
-OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
+# ── 1. ENV VARS ──────────────────────────────────────────────────────────────
+REPO   = os.environ["GITHUB_REPOSITORY"]          # e.g. ninadnaik/ninadnaik.github.io
+GH_PAT = os.environ["GH_PAT"]
+OA_KEY = os.environ["OPENAI_API_KEY"]
 
-gh  = Github(GH_PAT).get_repo(REPO_NAME)
-ai  = OpenAI(api_key=OPENAI_API_KEY)
+gh  = Github(GH_PAT).get_repo(REPO)
+ai  = OpenAI(api_key=OA_KEY)
 
-# --------------------------------------------------------------------
-# 2) Helpers to detect & fetch source content
-# --------------------------------------------------------------------
-URL_RE      = re.compile(r"https?://\S+")
-YOUTUBE_RE  = re.compile(r"(?:youtu\.be/|youtube\.com/watch\?v=)([\w-]{11})")
+# ── 2. URL helpers ───────────────────────────────────────────────────────────
+URL_RE     = re.compile(r"https?://\S+")
+YOUTUBE_RE = re.compile(r"(?:youtu\.be/|youtube\.com/watch\?v=)([\w-]{11})")
 
 def fetch_article(url: str) -> str | None:
-    """Return cleaned article text or None on failure."""
     try:
         html = requests.get(url, timeout=10).text
         text = html2text.html2text(Document(html).summary())
-        return text.strip()[:8000]          # cap to ~2k tokens
+        return text.strip()[:8000]
     except Exception:
         return None
 
 def fetch_youtube(url: str) -> str | None:
-    """Return YouTube transcript or None if unavailable."""
     vid = YOUTUBE_RE.search(url)
     if not vid:
         return None
@@ -58,55 +49,76 @@ def fetch_youtube(url: str) -> str | None:
     except Exception:
         return None
 
-# --------------------------------------------------------------------
-# 3) GPT-4o summary helper
-# --------------------------------------------------------------------
-def summarise(text: str) -> tuple[str, str]:
-    """Return (two-bullet string, essay_tag)."""
+# ── 3. GPT-4o summariser ─────────────────────────────────────────────────────
+def summarise(text: str) -> tuple[str, str, str] | None:
+    """
+    Returns (paragraphs, tag, stance) or None if model says SKIP.
+    """
+    prompt = (
+        "You are building a knowledge base for a first-principles book on intelligence and AI.\n"
+        "Core questions:\n"
+        "A. What is intelligence?   B. How does human cognition work?\n"
+        "C. Implications for machine intelligence.\n"
+        "D. Can neural-net / LLM tech reach meaningful AGI?\n"
+        "E. What should AGI mean & how to benchmark it?\n"
+        "F. Societal/business impact only when it illuminates A-E.\n\n"
+        "TASK\n"
+        "1. Read the SOURCE below.\n"
+        "2. Write THREE paragraphs (100–250 words total):\n"
+        "   • ¶1  – Key claim or finding (cite a concrete fact/number/name).\n"
+        "   • ¶2  – Implication for questions A-E (prefix with 'Implication:').\n"
+        "   • ¶3  – One open question or contradiction this raises.\n"
+        "3. End with two lines exactly:\n"
+        "   Tag: essay:<slug-case-tag>\n"
+        "   Stance: supportive | critical | neutral\n\n"
+        "CONSTRAINTS\n"
+        "- No filler phrases. Each paragraph must include at least one specific detail.\n"
+        "- If SOURCE offers nothing relevant to A-E, reply exactly: SKIP — not relevant.\n\n"
+        f"SOURCE (truncated 8 000 chars):\n<<<{text}>>>\nEND SOURCE"
+    )
+
     rsp = ai.chat.completions.create(
         model="gpt-4o-mini",
-        messages=[{
-            "role": "user",
-            "content": (
-                "Summarise the text below in EXACTLY two bullets (≤30 words each). "
-                "Then suggest ONE essay tag that starts with 'essay:'. "
-                "Return the three lines in that order.\n\n"
-                f"{text}"
-            )
-        }],
-        max_tokens=150,
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=380,
+        temperature=0.4,
     )
-    lines   = rsp.choices[0].message.content.strip().splitlines()
-    bullets = "\n".join(lines[:2]).lstrip("-• ").strip()
-    tag     = lines[2].strip().lstrip("#") if len(lines) > 2 else "essay:untagged"
-    return bullets, tag
 
-# --------------------------------------------------------------------
-# 4) Main triage loop
-# --------------------------------------------------------------------
+    out = rsp.choices[0].message.content.strip()
+
+    if out.startswith("SKIP"):
+        return None
+
+    *paras, tag_line, stance_line = out.splitlines()
+    paragraphs = "\n".join(p.strip("•- ").rstrip() for p in paras if p.strip())
+    tag    = tag_line.replace("Tag:", "").strip().lstrip("#")
+    stance = stance_line.replace("Stance:", "").strip()
+
+    return paragraphs, tag, stance
+
+# ── 4. Main triage loop ──────────────────────────────────────────────────────
 def main() -> None:
     for issue in gh.get_issues(labels=["inbox"], state="open"):
-        raw_body = issue.body or ""
-        url_match = URL_RE.search(raw_body)
-        link      = url_match.group(0) if url_match else ""
+        raw = issue.body or ""
+        link_match = URL_RE.search(raw)
+        link = link_match.group(0) if link_match else ""
 
-        # ----- decide what content to summarise -----
         fetched = None
         if link:
-            if YOUTUBE_RE.search(link):
-                fetched = fetch_youtube(link)
-            else:
-                fetched = fetch_article(link)
+            fetched = fetch_youtube(link) if YOUTUBE_RE.search(link) else fetch_article(link)
 
-        note_only   = URL_RE.sub("", raw_body).strip()
+        note_only   = URL_RE.sub("", raw).strip()
         source_text = fetched or note_only or "(no content fetched)"
 
-        bullets, tag = summarise(source_text)
+        summary = summarise(source_text)
+        if summary is None:
+            issue.create_comment("Skipped – not relevant to book thesis.")
+            issue.set_labels("skipped")
+            continue
 
-        # ----- format bullet list -----
-        bullet_lines = "• " + bullets.replace("\n", "\n• ")
+        paragraphs, tag, stance = summary
 
-        # ----- write markdown evidence file -----
+        # write MD
         filename = f"{datetime.date.today()}_{issue.number}.md"
         md_path  = Path("research/processed") / filename
         md_path.parent.mkdir(parents=True, exist_ok=True)
@@ -114,13 +126,14 @@ def main() -> None:
 source: {issue.html_url}
 link: {link}
 tags: [{tag}]
+stance: {stance}
 ---
-{bullet_lines}
+{paragraphs}
 """
         md_path.write_text(textwrap.dedent(md_text))
 
-        # ----- update Issue -----
-        issue.create_comment(f"Processed ✅\n\n{bullet_lines}")
+        # comment & relabel
+        issue.create_comment(f"Processed ✅\n\n{paragraphs[:500]}…")
         issue.set_labels("processed")
 
 if __name__ == "__main__":
