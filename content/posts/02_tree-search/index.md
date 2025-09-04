@@ -4,7 +4,7 @@ slug: "intelligence-as-tree-search"
 date: 2025-09-04
 tags: ["AI", "Intelligence", "Search", "Evolution"]
 author: "Ninad Naik"
-description: "Intelligence is massively parallel tree search guided by memory and logic. From evolution's glacial updates to humanity's network-speed learning, we trace how the speed of belief updates determines intelligence levels—and why AGI will emerge from millions of specialized agents, not a single superintelligence."
+description: "Intelligence is massively parallel tree search guided by memory and logic. From evolution's glacial updates to humanity's network-speed learning, we trace how the speed of belief updates determines intelligence levels — and why AGI will emerge from millions of specialized agents, not a single superintelligence."
 ---
 
 # Intelligence as Tree Search
