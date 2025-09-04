@@ -14,7 +14,7 @@ description: "Intelligence is massively parallel tree search guided by memory an
 
 ## Setting the Stage
 
-In our previous exploration, we proposed that every mind exists somewhere in a three-dimensional space defined by memory (what we know), compute (how we explore possibilities), and logic (how we compress and transfer patterns). These aren't independent forces but parts of an endless cycle: memory guides computation, computation reveals patterns, logic crystallizes what works, and the results flow back into memory for the next round.
+In our [previous](/posts/what-is-intelligence/) exploration, we proposed that every mind exists somewhere in a three-dimensional space defined by memory (what we know), compute (how we explore possibilities), and logic (how we compress and transfer patterns). These aren't independent forces but parts of an endless cycle: memory guides computation, computation reveals patterns, logic crystallizes what works, and the results flow back into memory for the next round.
 
 Now we're going to push this framework to its breaking point and see what emerges. I want to convince you of two ideas that might initially seem outrageous:
 
