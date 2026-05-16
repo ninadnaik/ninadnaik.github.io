@@ -3,7 +3,7 @@
 title: "What is Intelligence?"
 slug: "what-is-intelligence"
 date: 2025-06-01
-tags: ["AI", "Intelligence"]
+tags: ["AI", "Intelligence", "Intelligence Series"]
 author: "Ninad Naik"
 description: "A philosophical exploration of what intelligence truly is—across humans, animals, and machines—arguing that our failure to understand intelligence means we're building powerful AI systems without knowing what we're actually creating."
 ---

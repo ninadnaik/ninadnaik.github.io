@@ -2,7 +2,7 @@
 title: "Intelligence Is Compression, Not Experience"
 slug: "intelligence-is-compression"
 date: 2026-05-11
-tags: ["AI", "Intelligence", "Compression", "Learning", "Memory", "Cognitive Science"]
+tags: ["AI", "Intelligence", "Compression", "Learning", "Memory", "Cognitive Science", "Intelligence Series"]
 author: "Ninad Naik"
 description: "Experience alone does not produce intelligence – compression does. Intelligence advances in discontinuous jumps, when many experiences collapse into reusable abstractions. The bottleneck isn't compute or data – it's the ability to decide what to keep, what to discard, and how to reorganize what remains."
 ---
