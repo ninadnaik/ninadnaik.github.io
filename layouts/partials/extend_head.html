@@ -1,0 +1,9 @@
+{{- /* Custom head additions. Overrides PaperMod's empty extend_head.html. */ -}}
+
+{{- /* Cloudflare Web Analytics — privacy-friendly, no cookies, no consent banner.
+       hugo.IsProduction is true for `hugo` builds and false under `hugo server`,
+       so local previews are never counted. (site.Params.env is hardcoded to
+       "production" in hugo.toml, so it can't be used to gate dev vs prod.) */ -}}
+{{- if hugo.IsProduction }}
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "6a95c8ac36cf49eca98e230b610b4994"}'></script>
+{{- end }}
