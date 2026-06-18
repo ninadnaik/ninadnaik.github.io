@@ -2,12 +2,14 @@ baseURL = "https://ninadnaik.com/"
 languageCode = 'en-us'
 title = "Ninad Naik"
 theme = "PaperMod"
-paginate = 5
 
 enableRobotsTXT = true
 buildDrafts = false
 buildFuture = false
 buildExpired = false
+
+[pagination]
+pagerSize = 5
 
 [params]
 env = "production"
