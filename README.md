@@ -76,8 +76,11 @@ personal_website/
 │       ├── dd_llms-io-layer/index.md          # + .svg diagrams
 │       └── macro_trust-regimes/index.md
 ├── themes/PaperMod/       # submodule — do not edit directly
+├── layouts/
+│   └── partials/
+│       └── extend_head.html   # theme override: analytics beacon (see section 4)
 ├── archetypes/            # `hugo new` template (default.md)
-├── assets/ static/ data/ i18n/ layouts/   # Hugo dirs (mostly empty / theme defaults)
+├── assets/ static/ data/ i18n/   # Hugo dirs (mostly empty / theme defaults)
 ├── research/              # writing pipeline (see section 2)
 └── .github/workflows/     # hugo.yml (deploy) + triage_inbox.yml (research)
 ```
@@ -150,6 +153,42 @@ research links as GitHub Issues for it to triage.
 
 ---
 
+## 4. Analytics
+
+The site uses **Cloudflare Web Analytics** — privacy-friendly, cookieless, and
+therefore **no consent banner required**. It works on GitHub Pages without proxying
+the domain through Cloudflare (it's just a JS beacon).
+
+### How it's wired
+
+```
+PaperMod head.html ──► partial "extend_head.html" ──► Cloudflare beacon
+                       (our project-level override)    (production builds only)
+```
+
+- The snippet lives in **`layouts/partials/extend_head.html`**, a project override of
+  the theme's empty `extend_head.html` — so a PaperMod submodule update can't wipe it.
+- It's gated on **`hugo.IsProduction`**, so the beacon fires only on real `hugo`
+  builds (i.e. `ninadnaik.com`) and **never during `hugo server` previews** — your
+  local browsing isn't counted.
+  - Note: it must use `hugo.IsProduction`, *not* `site.Params.env`, because
+    `hugo.toml` hardcodes `env = "production"` and so can't distinguish dev from prod.
+- The beacon **token** is a public client-side identifier (safe to commit, lives
+  inline in the snippet). Not a secret — no `.env` involved.
+
+### Where to see the data
+
+Cloudflare dashboard → **Analytics & Logs → Web Analytics** (site: `ninadnaik.com`).
+Data appears within minutes of real (non-preview) traffic.
+
+### Rotating or replacing it
+
+Get a new beacon token from the Cloudflare dashboard and swap the `data-cf-beacon`
+token in `layouts/partials/extend_head.html`. To switch providers entirely, replace
+the snippet in that same file.
+
+---
+
 ## Conventions & gotchas
 
 - **Push = publish.** There is no staging environment; `main` is production.
@@ -157,6 +196,5 @@ research links as GitHub Issues for it to triage.
   `layouts/` or `assets/` instead.
 - **Don't commit `public/`** — it's CI-generated and gitignored.
 - **Local Hugo should match CI** (`v0.139.0 extended`) to avoid surprises.
-- **`directory_structure.md` is stale** — it predates the page-bundle layout and
-  references folders (`notes/`, checked-in `public/`) that no longer reflect reality.
-  Trust this README over it.
+- **Analytics won't show in local previews** — the beacon is production-only by
+  design, so `hugo server` pages carry no tracking (see section 4).
